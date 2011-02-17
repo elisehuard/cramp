@@ -15,8 +15,13 @@ class Thin::Connection
       if @request.parse(data)
         if @request.websocket?
           @response.persistent!
-          @response.websocket_upgrade_data = @request.websocket_upgrade_data
-          @serving = :websocket
+          if @request.env['HTTP_SEC_WEBSOCKET_KEY1']
+            @response.websocket_upgrade_data = @request.check_nonce
+            @serving = :websocket
+          else 
+            @response.websocket_upgrade_data = @request.websocket_upgrade_data
+          end
+
         end
 
         process

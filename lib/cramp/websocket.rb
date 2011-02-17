@@ -7,21 +7,30 @@ module Cramp
     end
 
     def websocket_upgrade_data
+      upgrade_header
+    end
+
+    def upgrade_header(challenge=nil)
       location  = "ws://#{@env['HTTP_HOST']}#{@env['REQUEST_URI']}"
+      upgrade =  "HTTP/1.1 101 Web Socket Protocol Handshake\r\n"
+      upgrade << "Upgrade: WebSocket\r\n"
+      upgrade << "Connection: Upgrade\r\n"
+      if challenge
+        upgrade << "Sec-WebSocket-Origin: #{@env['HTTP_ORIGIN']}\r\n"
+        upgrade << "Sec-WebSocket-Location: #{location}\r\n\r\n"
+        upgrade << challenge
+      end
+
+      upgrade
+    end
+
+    def check_nonce
       challenge = solve_challange(
         @env['HTTP_SEC_WEBSOCKET_KEY1'],
         @env['HTTP_SEC_WEBSOCKET_KEY2'],
         @env['rack.input'].read
       )
-
-      upgrade =  "HTTP/1.1 101 Web Socket Protocol Handshake\r\n"
-      upgrade << "Upgrade: WebSocket\r\n"
-      upgrade << "Connection: Upgrade\r\n"
-      upgrade << "Sec-WebSocket-Origin: #{@env['HTTP_ORIGIN']}\r\n"
-      upgrade << "Sec-WebSocket-Location: #{location}\r\n\r\n"
-      upgrade << challenge
-
-      upgrade
+      upgrade_header(challenge)
     end
 
     def solve_challange(first, second, third)
